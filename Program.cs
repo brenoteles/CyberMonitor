@@ -62,6 +62,7 @@ static class Program
         using var mutex = new Mutex(true, "CyberMonitor.Turzx35", out bool first);
         if (!first) return;
 
+        Log.Write($"CyberMonitor {Application.ProductVersion} starting from {Environment.ProcessPath}");
         ApplicationConfiguration.Initialize();
         Application.Run(new TrayContext(Settings.Load()));
     }
@@ -122,10 +123,15 @@ sealed class TrayContext : ApplicationContext
         _worker.Start();
     }
 
-    void OnSessionEnded(object? sender, SessionEndedEventArgs e) => TurnScreenOff();
+    void OnSessionEnded(object? sender, SessionEndedEventArgs e)
+    {
+        Log.Write($"Session ended ({e.Reason}), turning screen off");
+        TurnScreenOff();
+    }
 
     void OnPowerModeChanged(object? sender, PowerModeChangedEventArgs e)
     {
+        Log.Write($"Power mode: {e.Mode}");
         if (e.Mode == PowerModes.Suspend) TurnScreenOff();
         else if (e.Mode == PowerModes.Resume)
         {
@@ -201,6 +207,7 @@ sealed class TrayContext : ApplicationContext
                         dash = new Dashboard(lcd.Width, lcd.Height);
                     }
                     _status = $"Connected on {lcd.PortName}";
+                    Log.Write($"{_status}, brightness {_settings.Brightness}%, flip {_settings.Flip}");
                 }
 
                 var frame = dash!.Render(hw.Read());
@@ -216,6 +223,7 @@ sealed class TrayContext : ApplicationContext
                 _status = ex is UnauthorizedAccessException
                     ? "Port in use — close the vendor UsbMonitor app"
                     : $"No display: {ex.Message}";
+                Log.Write($"{_status} ({ex.GetType().Name})");
                 lcd?.Dispose();
                 lcd = null;
                 token.WaitHandle.WaitOne(3000);

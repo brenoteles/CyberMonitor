@@ -9,7 +9,7 @@
     <ApplicationManifest Condition="'$(NoAdmin)' != 'true'">app.manifest</ApplicationManifest>
     <AssemblyName>CyberMonitor</AssemblyName>
     <RootNamespace>CyberMonitor</RootNamespace>
-    <Version>1.0.0</Version>
+    <Version>1.0.3</Version>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>
 

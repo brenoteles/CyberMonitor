@@ -49,11 +49,50 @@ public sealed class TuringLcd : IDisposable
 
     public static TuringLcd Open(string? portName)
     {
-        var name = string.IsNullOrWhiteSpace(portName) || portName.Equals("auto", StringComparison.OrdinalIgnoreCase)
-            ? FindPort() : portName;
-        if (name == null)
-            throw new IOException("Display Turing 3.5\" not found (USB VID_1A86&PID_5722).");
-        return new TuringLcd(name);
+        bool auto = string.IsNullOrWhiteSpace(portName) || portName.Equals("auto", StringComparison.OrdinalIgnoreCase);
+        var name = (auto ? FindPort() : portName)
+            ?? throw new IOException("Display not found (USB VID_1A86&PID_5722).");
+
+        Log.Write($"Opening {name}, resyncing controller");
+        using (var lcd = new TuringLcd(name))
+            lcd.Resync();
+
+        // The controller reboots after RESET and may re-enumerate on USB: wait for it to come back
+        var deadline = Environment.TickCount64 + 10_000;
+        Thread.Sleep(2000);
+        while (Environment.TickCount64 < deadline)
+        {
+            var current = auto ? FindPort() : name;
+            if (current != null && SerialPort.GetPortNames().Contains(current))
+            {
+                Thread.Sleep(500);
+                Log.Write($"Reopening {current}");
+                return new TuringLcd(current);
+            }
+            Thread.Sleep(250);
+        }
+        throw new IOException("Display did not come back after reset.");
+    }
+
+    /// <summary>
+    /// If a previous process was killed mid-transfer, the controller is still waiting for bitmap
+    /// bytes and swallows every command we send. A run of 0x65 (RESET) bytes first completes any
+    /// pending bitmap and then, whatever the byte alignment, decodes as a RESET header.
+    /// </summary>
+    void Resync()
+    {
+        var flush = new byte[NativeWidth * NativeHeight * 2 + 12];
+        Array.Fill(flush, CmdReset);
+        try
+        {
+            for (int off = 0; off < flush.Length; off += 4096)
+                _port.Write(flush, off, Math.Min(4096, flush.Length - off));
+        }
+        catch (Exception ex) when (ex is IOException or TimeoutException or InvalidOperationException)
+        {
+            // Expected when the controller resets while we are still writing
+            Log.Write($"Resync write ended early: {ex.Message}");
+        }
     }
 
     /// <summary>Finds the display COM port by its USB VID/PID.</summary>
