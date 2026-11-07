@@ -19,7 +19,7 @@ hardware and streams a neon dashboard to the screen.
 - Sends only the parts of the screen that changed, which keeps the USB serial link fast
 - Automatically finds the display's COM port
 - **Turns the screen off when Windows shuts down, restarts or goes to sleep**, and back on after resume
-- Tray menu: preview window, brightness, rotate 180°, exit
+- Tray menu: preview window, brightness, rotate 180°, start with Windows, exit
 
 ![Static preview](docs/preview.png)
 
@@ -53,7 +53,9 @@ Settings are stored in `settings.json` next to the executable:
 }
 ```
 
-To start with Windows, create a scheduled task that runs `CyberMonitor.exe` at log on with highest privileges.
+To start with Windows, tick **Start with Windows** in the tray menu. It registers a log-on task with highest
+privileges and disables the vendor app's `UsbMonitor` task so it no longer grabs the display first
+(re-enable it in Task Scheduler if you ever go back).
 
 ## Building
 

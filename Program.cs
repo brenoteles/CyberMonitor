@@ -92,6 +92,15 @@ sealed class TrayContext : ApplicationContext
             bright.DropDownItems.Add($"{level}%", null, (_, _) => { _settings.Brightness = level; Persist(); });
         menu.Items.Add(bright);
         menu.Items.Add("Rotate 180°", null, (_, _) => { _settings.Flip = !_settings.Flip; Persist(); });
+        var autostart = new ToolStripMenuItem("Start with Windows") { Checked = Autostart.IsEnabled() };
+        autostart.Click += (_, _) =>
+        {
+            bool ok = autostart.Checked ? Autostart.Disable() : Autostart.Enable();
+            if (!ok)
+                MessageBox.Show("Could not update the scheduled task.", "CyberMonitor", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            autostart.Checked = Autostart.IsEnabled();
+        };
+        menu.Items.Add(autostart);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Exit", null, (_, _) => ExitThread());
 
